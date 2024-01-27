@@ -54,8 +54,8 @@ while True:
       except ValueError as e:
         cv2.putText(img, 'move away from camera', (20, 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0,255),1)
     
-    else:
-      k = imgSize / w
+    else: # width of the image is larger than the height
+      k = imgSize / w 
       hCal = int(k * h) + 1
 
       imgResize = cv2.resize(imgCrop, (imgSize, hCal))
