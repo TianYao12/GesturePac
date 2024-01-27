@@ -64,8 +64,11 @@ while True:
             k = imgSize / w
             hCal = int(k * h) + 1
 
-            imgResize = cv2.resize(imgCrop, (imgSize, hCal))
-            imResizeShape = imgResize.shape
+            try:
+                imgResize = cv2.resize(imgCrop, (imgSize, hCal))
+                imResizeShape = imgResize.shape
+            except:
+                continue
             hGap = int((imgSize - hCal) / 2) + 1
             try:
                 imgWhite[hGap:hGap + hCal, :] = imgResize
@@ -87,8 +90,8 @@ while True:
         cv2.rectangle(imgOutput, (x - offset, y - offset),
                       (x + w + offset, y + h + offset), (255, 0, 255), 4)
 
-        cv2.imshow('Imagecrop', imgCrop)
-        cv2.imshow('ImageWhite', imgWhite)
+        #cv2.imshow('Imagecrop', imgCrop)
+        #cv2.imshow('ImageWhite', imgWhite)
 
     cv2.imshow("Image", imgOutput)
     cv2.waitKey(30)
