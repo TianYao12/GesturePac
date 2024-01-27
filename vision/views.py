@@ -10,7 +10,7 @@ def data_points_list(request):
     if request.method == 'GET':
         data_points = Data.objects.all() # get all data
         serializer = DataSerializer(data_points, many=True)
-        return JsonResponse({"data":serializer.data})
+        return JsonResponse({"data": serializer.data})
 
     if request.method == 'POST':
         serializer = DataSerializer(data=request.data)
