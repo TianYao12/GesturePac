@@ -91,6 +91,6 @@ while True:
         cv2.imshow('ImageWhite', imgWhite)
 
     cv2.imshow("Image", imgOutput)
-    cv2.waitKey(1)
+    cv2.waitKey(30)
 
 # TODO: try except for the hand being outside of the screen

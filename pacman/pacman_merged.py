@@ -10,9 +10,9 @@ from board import boards as boardMap
 import threading
 import queue
 import os
+import asyncio
 
-os.chdir("./nostalgia/pacman/")
-
+os.chdir("./pacman/")
 
 signIndex = 0
 
