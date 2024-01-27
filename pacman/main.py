@@ -1,16 +1,11 @@
+import numpy as np  
 import cv2
-from cvzone.HandTrackingModule import HandDetector
-from cvzone.ClassificationModule import Classifier
-import numpy as np
-import tensorflow
-import time
 import pygame as py
 import math
 from board import boards as boardMap
 import threading
 import queue
 import os
-import asyncio
 import mediapipe as mp
 
 os.chdir("./pacman/")
@@ -379,16 +374,15 @@ def run_game(q):
 
 q = queue.Queue()
 
-async def main():
-    pygame_thread = threading.Thread(target=run_game, args=(q,))
-    opencv_thread = threading.Thread(target=run_model, args=(q,))
 
-    # Start the threads
-    pygame_thread.start()
-    opencv_thread.start()
+pygame_thread = threading.Thread(target=run_game, args=(q,))
+opencv_thread = threading.Thread(target=run_model, args=(q,))
 
-    # Wait for both threads to complete
-    pygame_thread.join()
-    opencv_thread.join()
+# Start the threads
+pygame_thread.start()
+opencv_thread.start()
 
-asyncio.run(main())
+# Wait for both threads to complete
+pygame_thread.join()
+opencv_thread.join()
+
