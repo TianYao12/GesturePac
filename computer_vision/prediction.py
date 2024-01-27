@@ -14,9 +14,7 @@ classifier = Classifier('Model/keras_model.h5', 'Model/labels.txt')
 
 # offset for the image crop
 offset = 30
-
 imgSize = 300
-
 folder = "Data/right"
 counter = 0
 

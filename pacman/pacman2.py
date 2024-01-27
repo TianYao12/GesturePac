@@ -4,13 +4,16 @@ from board import boards as boardMap
 
 py.init()
 
-CELLSIZE = 20
+CELLSIZE = 22
 CELLX = 30
 CELLY = 33
 WIDTH = CELLSIZE * CELLX
 HEIGHT = CELLSIZE * CELLY
 FPS = 60
 COLOURTHEME = 'blue'
+def cos(n): return round(math.cos(math.radians(n)))
+def sin(n): return round(math.sin(math.radians(n)))
+
 
 screen = py.display.set_mode([WIDTH, HEIGHT])
 timer = py.time.Clock()
@@ -22,19 +25,43 @@ board_images = []
 for i in range(1, 10):
     board_images.append(py.transform.scale(py.image.load(f'assets/board_images/{i}.png').convert_alpha(), (CELLSIZE, CELLSIZE)))
 
+
+score = 0
 flicker = True
 
 class Player:
     def __init__(self):
-        self.x = 100
-        self.y = 100
+        self.x = 15
+        self.y = 24
         self.dir = 0
+        self.queuedDir = None
     def update(self):
-        self.x += math.cos(math.radians(self.dir))
-        self.y -= math.sin(math.radians(self.dir))
+        print(self.dir)
+
+
+        if self.x % 1 == 0 and self.y % 1 == 0:
+            self.checkTurns()
+            if board[int(self.y - sin(self.dir))][int(self.x + cos(self.dir))].type < 3:
+                self.x = round(self.x + 0.05 * cos(self.dir), 2)
+                self.y = round(self.y - 0.05 * sin(self.dir), 2)
+
+        else:
+            self.x = round(self.x + 0.05 * cos(self.dir), 2)
+            self.y = round(self.y - 0.05 * sin(self.dir), 2)
+
+        print(self.x, self.y)
     def display(self):
-            # 0-RIGHT, 1-LEFT, 2-UP, 3-DOWN
-        screen.blit(py.transform.rotate(player_images[0], self.dir), (self.x, self.y))
+        screen.blit(py.transform.rotate(player_images[0], self.dir), (self.x * CELLSIZE, self.y * CELLSIZE))
+    def checkTurns(self):
+        if self.queuedDir == None:
+            pass
+        
+        elif board[int(self.y - sin(self.queuedDir))][int(self.x + cos(self.queuedDir))].type < 3:
+            self.dir = self.queuedDir
+            self.queuedDir = None
+
+        
+        
 
 player = Player()
 
@@ -47,8 +74,6 @@ class Tile:
             screen.blit(board_images[self.type-1], (x,y))
 
 
-
-
 board = []
 
 
@@ -58,8 +83,6 @@ def init():
         for j in range(0, CELLX):
             board[i].append(Tile(boardMap[i][j]))
 
-
-
 def update():
     for e in py.event.get():
         if e.type == py.QUIT:
@@ -67,13 +90,13 @@ def update():
             running = False
         if e.type == py.KEYDOWN:
             if e.key == py.K_RIGHT:
-                player.dir = 0
+                player.queuedDir = 0
             if e.key == py.K_UP:
-                player.dir = 90
+                player.queuedDir = 90
             if e.key == py.K_LEFT:
-                player.dir = 180
+                player.queuedDir = 180
             if e.key == py.K_DOWN:
-                player.dir = 270
+                player.queuedDir = 270
     player.update()
 
 def display():
