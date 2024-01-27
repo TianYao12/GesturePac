@@ -11,8 +11,6 @@ import threading
 import queue
 import os
 
-os.chdir("./nostalgia/pacman/")
-
 
 signIndex = 0
 

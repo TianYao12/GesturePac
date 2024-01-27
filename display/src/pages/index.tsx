@@ -18,7 +18,7 @@ export default function Home() {
             src="/pac-man-img.jpg"
             alt="Next.js Logo"
             width={180}
-            height={37}
+            height={40}
             priority
           />
         </div>
