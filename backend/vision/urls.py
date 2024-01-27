@@ -5,10 +5,8 @@ from vision import views
 # The `urlpatterns` list routes URLs to views
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("data/", views.data_points_list),
-    path("data/<int:id>", views.data_detail),
-    path("data/latest/", views.latest_data_detail)
-
+    path("users/", views.data_points_list),
+    path("users/<str:name>", views.data_change)
 ]
 
 """
