@@ -1,8 +1,5 @@
 import cv2
-from cvzone.HandTrackingModule import HandDetector
-from cvzone.ClassificationModule import Classifier
-import numpy as np
-import tensorflow
+
 import time
 import pygame as py
 import math
@@ -10,87 +7,80 @@ from board import boards as boardMap
 import threading
 import queue
 import os
+import mediapipe as mp
 
-os.chdir("./nostalgia/pacman/")
+# os.chdir("./nostalgia/pacman/") 
 
 
 signIndex = 0
 
 def run_model(q):
-    cap = cv2.VideoCapture(0)
+    head_x, head_y = 0, 0
+    tail_x, tail_y = 0, 0
+    wrist_x, wrist_y = 0, 0
 
-    detector = HandDetector(maxHands = 1)
-    classifier = Classifier('Model/keras_model.h5', 'Model/labels.txt')
-
-    # offset for the image crop
-    offset = 30
-
-    imgSize = 300
-
-    folder = "Data/right"
+    webcam = cv2.VideoCapture(0)
+    my_hands = mp.solutions.hands.Hands()
+    drawing_utils = mp.solutions.drawing_utils
     counter = 0
-
-    labels = ['up', 'down', 'left', 'right']
-
     while True:
-        success, img = cap.read()
-        imgOutput = img.copy()
-        hands, img = detector.findHands(img)
+        success, image = webcam.read()
+        frame_height, frame_width, channels = image.shape
+        rgb_image =cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        output = my_hands.process(rgb_image)
+
+        hands = output.multi_hand_landmarks
 
         if hands:
-            hand = hands[0]
-            # get bounding box info
-            x, y, w, h = hand['bbox']
-            #print(x, y, w, h)
-            # 1x255 gives white
-            imgWhite = np.ones((imgSize, imgSize, 3), np.uint8) * 255
-            imgCrop = img[y - offset: y + h + offset, x - offset: x + w + offset]
-            imgCropShape = imgCrop.shape
+            for hand in hands:
+                drawing_utils.draw_landmarks(image, hand)
+                landmarks = hand.landmark
 
-            #TODO: handle case where hand is too big for screen
+                for id, landmark in enumerate(landmarks):
+                    x = int(landmark.x * frame_width)
+                    y = int(landmark.y * frame_height)
+                    if id == 8:                               # top of index finger
+                        cv2.circle(img = image, center = (x, y), radius = 8, color = (0, 255, 255), thickness = 3)
+                        head_x = x
+                        head_y = y
+                    if id == 5:
+                        cv2.circle(img = image, center = (x, y), radius = 8, color = (0, 255, 255), thickness = 3)
+                        tail_x = x
+                        tail_y = y
+                    if id == 0:
+                        wrist_x = x
+                        wrist_y = y
+                        
+                    dx = head_x - tail_x
+                    dy = head_y - tail_y
+                    wrist_dist = (((head_x - wrist_x) ** 2) + (head_y - wrist_y) ** 2) ** (0.5)
+                    dist = (dx**2 + dy**2)**(0.5)
 
-            aspectRatio = h/w
-            if aspectRatio > 1:                 # in this case the height of image is larger than width
-                k = imgSize / h                   # how much to shift width by
-                wCal = int(k * w) + 1             # ceil
-                
-                imgResize = cv2.resize(imgCrop,(wCal, imgSize))
-                imgResizeShape = imgResize.shape
-                wGap = int((300 - wCal) / 2) + 1
-                try:
-                    imgWhite[:, wGap: wCal + wGap] = imgResize
-                    prediction, signIndex = classifier.getPrediction(imgWhite)
-                    # print(prediction, signIndex)
-                    q.put(signIndex)
-                except ValueError as e:
-                    cv2.putText(img, 'move away from camera', (20, 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0,255),1)
-        
-            else: # width of the image is larger than the height
-                k = imgSize / w
-                hCal = int(k * h) + 1
+                    if dist / wrist_dist > 0.25:      #threshold for pointing detection
+                        # print(counter)      45 degrees is the threshold for changing direction
+                        if (dx > 0 and dy > 0 and abs(dy) > abs(dx)) or (dx < 0 and dy > 0 and abs(dy) > abs(dx)):
+                            cv2.putText(image, 'down', (100, 100), cv2.FONT_HERSHEY_COMPLEX, 2, (255, 0, 255), 2)
+                        elif (dx > 0 and dy < 0 and abs(dy) > abs(dx)) or (dx < 0 and dy < 0 and abs(dy) > abs(dx)):
+                            cv2.putText(image, 'up', (100, 100), cv2.FONT_HERSHEY_COMPLEX, 2, (255, 0, 255), 2)
+                        elif (dx > 0 and dy > 0 and abs(dy) <= abs(dx)) or (dx > 0 and dy < 0 and abs(dy) <= abs(dx)):
+                            cv2.putText(image, 'left', (100, 100), cv2.FONT_HERSHEY_COMPLEX, 2, (255, 0, 255), 2)
+                        elif (dx < 0 and dy > 0 and abs(dy) <= abs(dx)) or (dx < 0 and dy < 0 and abs(dy) <= abs(dx)):
+                            cv2.putText(image, 'right', (100, 100), cv2.FONT_HERSHEY_COMPLEX, 2, (255, 0, 255), 2)
+                    
 
-                imgResize = cv2.resize(imgCrop, (imgSize, hCal))
-                imResizeShape = imgResize.shape
-                hGap = int((imgSize - hCal) / 2) + 1
-                try:
-                    imgWhite[hGap:hGap + hCal, :] = imgResize
-                    prediction, signIndex = classifier.getPrediction(imgWhite)
-                    # print(prediction, signIndex)
-                    q.put(signIndex)
-                except ValueError as e:
-                    cv2.putText(img, 'move away from camera', (20, 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0,255),1)
+                    cv2.line(image, (head_x, head_y), (tail_x, tail_y), (0, 255, 0), 5)
 
-            cv2.putText(imgOutput, labels[signIndex], (x, y - 10), cv2.FONT_HERSHEY_COMPLEX, 2, (255, 0, 255), 2)
+                    
+            
+        cv2.imshow("Gesture", image)
 
-            cv2.rectangle(imgOutput, (x - offset, y - offset), (x + w + offset, y + h + offset), (255, 0, 255), 4)
+        key = cv2.waitKey(10)
 
-            cv2.imshow('Imagecrop', imgCrop)
-            cv2.imshow('ImageWhite', imgWhite)
+        if key == 27:
+            break
 
-        cv2.imshow("Image", imgOutput)
-        cv2.waitKey(1)
-
-    #TODO: try except for the hand being outside of the screen
+    webcam.release()
+    cv2.destroyAllWindows()
 
 
 def run_game(q):
@@ -106,7 +96,6 @@ def run_game(q):
     def cos(n): return round(math.cos(math.radians(n)))
     def sin(n): return round(math.sin(math.radians(n)))
 
-
     screen = py.display.set_mode([WIDTH, HEIGHT])
     timer = py.time.Clock()
     player_images = []
@@ -118,7 +107,7 @@ def run_game(q):
         board_images.append(py.transform.scale(py.image.load(f'assets/board_images/{i}.png').convert_alpha(), (CELLSIZE, CELLSIZE)))
 
 
-    score = 0
+
     flicker = True
 
     class Player:
@@ -127,6 +116,7 @@ def run_game(q):
             self.y = y
             self.dir = 0
             self.queuedDir = None
+            self.score = 0
         def update(self):
 
             if not(self.x % 1 == 0 and self.y % 1 == 0) or board[int(self.y - sin(self.dir))][int(self.x + cos(self.dir))].type < 3:
@@ -135,7 +125,12 @@ def run_game(q):
             if self.x % 1 == 0 and self.y % 1 == 0:
                 self.checkTurns()
                 if board[int(self.y)][int(self.x)].type < 3:
+                    if board[int(self.y)][int(self.x)].type == 1:
+                        self.score += 10
+                    elif board[int(self.y)][int(self.x)].type == 2:
+                        self.score += 50
                     board[int(self.y)][int(self.x)].type = 0
+                    
 
 
             # print(self.x, self.y)
@@ -162,11 +157,19 @@ def run_game(q):
             return self.position == other.position
 
     class astarGhost:
-        def __init__(self, name='a', x=18, y=24):
+        def __init__(self, name='lel', x=18, y=24):
             self.name = name
             self.x = x
             self.y = y
             self.dir = 0
+            if name == 'blinky':
+                self.color = "red"
+            elif name == 'pinky':
+                self.color = "pink"
+            elif name == 'inky':
+                self.color = "cyan"
+            elif name == 'clyde':
+                self.color = "orange"
         def update(self):
             
 
@@ -177,7 +180,8 @@ def run_game(q):
 
 
         def display(self):
-            py.draw.circle(screen, 'white', (self.x * CELLSIZE + CELLSIZE/2, self.y * CELLSIZE + CELLSIZE/2), 10)
+            
+            py.draw.circle(screen, self.color, (self.x * CELLSIZE + CELLSIZE/2, self.y * CELLSIZE + CELLSIZE/2), 10)
         def checkTurns(self):
 
             path = self.astar()
@@ -192,7 +196,33 @@ def run_game(q):
             start_node = Node(None, (int(self.x), int(self.y)))
             start_node.c = start_node.b = start_node.a = 0
 
-            end_node = Node(None, (int(player.x), int(player.y)))
+            if self.name == 'blinky':
+                end_node = Node(None, (int(player.x), int(player.y)))
+            elif self.name == 'pinky':
+                if math.hypot(self.x - player.x, self.y - player.y) < 6:
+                    end_node = Node(None, (int(player.x), int(player.y)))
+                else:
+                    for i in range(19):
+                        x,y = int(player.x + i*cos(player.dir)), int(player.y - i*sin(player.dir))
+                        if board[y][x].type >= 3 or outofy(y) or outofx(x):
+                            break
+                        end_node = Node(None, (x, y))
+            elif self.name == 'inky':
+                if math.hypot(self.x - player.x, self.y - player.y) < 10:
+                    end_node = Node(None, (int(player.x), int(player.y)))
+                else:
+                    for i in range(19):
+                        x,y = int(player.x - i*cos(player.dir)), int(player.y + i*sin(player.dir))
+                        if board[y][x].type >= 3 or outofy(y) or outofx(x):
+                            break
+                        end_node = Node(None, (x, y))
+            elif self.name == 'clyde':
+                if math.hypot(self.x - player.x, self.y - player.y) < 8:
+                    end_node = Node(None, (int(player.x), int(player.y)))
+                else:
+                    end_node = Node(None, (int(CELLX - player.x -), int(player.y)))
+
+            
             end_node.c = end_node.b = end_node.a = 0
             
             neighboring.append(start_node)
@@ -307,9 +337,6 @@ def run_game(q):
 
 
 
-        
-                
-
     class Tile:
         def __init__(self, type):
             self.type = type
@@ -321,7 +348,16 @@ def run_game(q):
 
     board = []
     player = Player()
-    g1 = astarGhost()
+    blinky = astarGhost("blinky", 18, 6)
+    pinky = astarGhost("pinky", 24, 6)
+    inky = astarGhost("inky", 26, 24)
+    clyde = astarGhost("clyde", 16, 6)
+    ghosts = [blinky, pinky, inky, clyde]
+
+    def outofx(x):
+        return x < 0 or x > CELLX
+    def outofy(y):
+        return y < 0 or y > CELLY
     def init():
         for i in range(0, CELLY):
             board.append([])
@@ -344,14 +380,17 @@ def run_game(q):
                     player.queuedDir = 270
         if not(q.empty()):
             vall = q.get()
-            print(vall)
+            print(vall * 90)
             player.queuedDir = vall * 90
         player.update()
-        g1.update()
+        for ghost in ghosts:
+            ghost.update()
+        
 
     def display():
         player.display()
-        g1.display()
+        for ghost in ghosts:
+            ghost.display()
 
         for i in range(0, CELLY):
             for j in range(0, CELLX):
@@ -376,12 +415,12 @@ def run_game(q):
 q = queue.Queue()
 
 pygame_thread = threading.Thread(target=run_game, args=(q,))
-opencv_thread = threading.Thread(target=run_model, args=(q,))
+# opencv_thread = threading.Thread(target=run_model, args=(q,))
 
 # Start the threads
 pygame_thread.start()
-opencv_thread.start()
+# opencv_thread.start()
 
 # Wait for both threads to complete
 pygame_thread.join()
-opencv_thread.join()
+# opencv_thread.join()
