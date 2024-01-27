@@ -226,7 +226,8 @@ class Tile:
 
     def display(self, x, y):
         if self.type >= 1:
-            screen.blit(board_images[self.type-1], (x ,y - 0 * CELLSIZE))
+            screen.blit(board_images[self.type-1], (x- 1.5*CELLSIZE,y- 1.5*CELLSIZE))
+
 
 board = []
 player = Player()
