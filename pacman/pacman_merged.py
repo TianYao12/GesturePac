@@ -86,6 +86,11 @@ def run_model(q):
 def run_game(q):
     py.init()
 
+    py.mixer.init()
+    py.mixer.music.load('assets/bg.mp3')
+    py.mixer.music.set_volume(0.2)
+    py.mixer.music.play()
+
     CELLSIZE = 22
     CELLX = 30
     CELLY = 33
@@ -108,16 +113,23 @@ def run_game(q):
 
 
 
-    flicker = True
+
 
     class Player:
-        def __init__(self, x=15, y=24):
-            self.x = x
-            self.y = y
+        def __init__(self):
+            self.homex = 15
+            self.homey = 24
+            self.x = self.homex
+            self.y = self.homey
             self.dir = 0
             self.queuedDir = None
             self.score = 0
+            self.flicker = 0
+            self.lives = 3
         def update(self):
+            
+            if self.flicker > 0:
+                self.flicker -= 1
 
             if not(self.x % 1 == 0 and self.y % 1 == 0) or board[int(self.y - sin(self.dir))][int(self.x + cos(self.dir))].type < 3:
                 self.x = round(self.x + 0.05 * cos(self.dir), 2)
@@ -129,6 +141,7 @@ def run_game(q):
                         self.score += 10
                     elif board[int(self.y)][int(self.x)].type == 2:
                         self.score += 50
+                        self.flicker = 360
                     board[int(self.y)][int(self.x)].type = 0
                     
 
@@ -136,7 +149,6 @@ def run_game(q):
             # print(self.x, self.y)
         def display(self):
             screen.blit(py.transform.rotate(player_images[0], self.dir), (self.x * CELLSIZE, self.y * CELLSIZE))
-            py.draw.circle(screen, 'white', (self.x * CELLSIZE, self.y * CELLSIZE), 3)
         def checkTurns(self):
             if self.queuedDir == None:
                 pass
@@ -157,31 +169,56 @@ def run_game(q):
             return self.position == other.position
 
     class astarGhost:
-        def __init__(self, name='lel', x=18, y=24):
+        def __init__(self, name='blinky'):
             self.name = name
-            self.x = x
-            self.y = y
             self.dir = 0
+            self.alive = True
             if name == 'blinky':
                 self.color = "red"
+                self.speed = 0.025
+                self.homex = 14
+                self.homey = 13
             elif name == 'pinky':
                 self.color = "pink"
+                self.speed = 0.03125
+                self.homex = 12
+                self.homey = 16
             elif name == 'inky':
                 self.color = "cyan"
+                self.speed = 0.03125
+                self.homex = 14
+                self.homey = 16
             elif name == 'clyde':
                 self.color = "orange"
+                self.speed = 0.04
+                self.homex = 14
+                self.homey = 16
+            self.x = self.homex
+            self.y = self.homey
         def update(self):
             
+            if self.alive:
+                if self.x % 1 == 0 and self.y % 1 == 0:
+                    self.checkTurns()
+                self.x = round(self.x + self.speed * cos(self.dir), 5)
+                self.y = round(self.y + self.speed * sin(self.dir), 5)
+            else:
+                path = self.astar()
+                if len(path) <= 1:
+                    self.alive = True
+                else:
+                    self.x = path[1][0]
+                    self.y = path[1][1]
 
-            if self.x % 1 == 0 and self.y % 1 == 0:
-                self.checkTurns()
-            self.x = round(self.x + 0.04 * cos(self.dir), 2)
-            self.y = round(self.y + 0.04 * sin(self.dir), 2)
+
 
 
         def display(self):
-            
-            py.draw.circle(screen, self.color, (self.x * CELLSIZE + CELLSIZE/2, self.y * CELLSIZE + CELLSIZE/2), 10)
+            if player.flicker == 0:
+                py.draw.circle(screen, self.color, (self.x * CELLSIZE + CELLSIZE/2, self.y * CELLSIZE + CELLSIZE/2), 10)
+            else:
+                py.draw.circle(screen, 'white', (self.x * CELLSIZE + CELLSIZE/2, self.y * CELLSIZE + CELLSIZE/2), 10)
+
         def checkTurns(self):
 
             path = self.astar()
@@ -195,8 +232,9 @@ def run_game(q):
             neighboring = []
             start_node = Node(None, (int(self.x), int(self.y)))
             start_node.c = start_node.b = start_node.a = 0
-
-            if self.name == 'blinky':
+            if not(self.alive):
+                end_node = Node(None, (int(self.homex), self.homey))
+            elif self.name == 'blinky':
                 end_node = Node(None, (int(player.x), int(player.y)))
             elif self.name == 'pinky':
                 if math.hypot(self.x - player.x, self.y - player.y) < 6:
@@ -208,7 +246,7 @@ def run_game(q):
                             break
                         end_node = Node(None, (x, y))
             elif self.name == 'inky':
-                if math.hypot(self.x - player.x, self.y - player.y) < 10:
+                if math.hypot(self.x - player.x, self.y - player.y) < 8:
                     end_node = Node(None, (int(player.x), int(player.y)))
                 else:
                     for i in range(19):
@@ -217,12 +255,11 @@ def run_game(q):
                             break
                         end_node = Node(None, (x, y))
             elif self.name == 'clyde':
-                if math.hypot(self.x - player.x, self.y - player.y) < 8:
+                if math.hypot(self.x - player.x, self.y - player.y) < 7:
                     end_node = Node(None, (int(player.x), int(player.y)))
                 else:
-                    end_node = Node(None, (int(CELLX - player.x -), int(player.y)))
+                    end_node = Node(None, (int(CELLX - player.x - 1), int(player.y)))
 
-            
             end_node.c = end_node.b = end_node.a = 0
             
             neighboring.append(start_node)
@@ -248,7 +285,7 @@ def run_game(q):
                 children = []
                 for relative_position in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
                     new_position = (current_node.position[0] + relative_position[0], current_node.position[1] + relative_position[1])
-                    if board[new_position[1]][new_position[0]].type >= 3 or new_position[0] < 0 or new_position[0] > CELLX:
+                    if board[new_position[1]][new_position[0]].type <= 8 and board[new_position[1]][new_position[0]].type >= 3 or new_position[0] < 0 or new_position[0] > CELLX:
                         continue
                     new_node = Node(current_node, new_position)
                     children.append(new_node)
@@ -270,72 +307,6 @@ def run_game(q):
                     if not(skip):
                         neighboring.append(child)
 
-    # I don't think this works
-    # class QGhost:
-    #     def __init__(self, learning_rate=0.1, discount_factor=0.9, exploration_rate=0.1, x=18, y=24):
-    #         self.x = x
-    #         self.y = y
-    #         self.q_table = defaultdict(lambda: np.zeros(4))
-    #         self.learning_rate = learning_rate
-    #         self.discount_factor = discount_factor
-    #         self.exploration_rate = exploration_rate
-
-    #     def update(self):
-    #         self.checkTurns()
-    #         if self.x % 1 == 0 and self.y % 1 == 0:
-    #             self.checkTurns()
-    #         self.x = round(self.x + 0.05 * cos(self.dir), 2)
-    #         self.y = round(self.y + 0.05 * sin(self.dir), 2)
-
-    #     def display(self):
-    #         py.draw.circle(screen, 'white', (self.x * CELLSIZE + CELLSIZE/2, self.y * CELLSIZE + CELLSIZE/2), 10)
-
-    #     def checkTurns(self):
-    #         state = self.get_state()
-    #         action = self.get_action(state)
-    #         reward = self.get_reward()
-
-    #         next_state = self.get_state()
-    #         next_action = self.get_action(next_state)
-
-    #         q_value = self.q_table[state][action]
-    #         next_q_value = self.q_table[next_state][next_action]
-    #         td_error = reward + self.discount_factor * next_q_value - q_value
-    #         self.q_table[state][action] += self.learning_rate * td_error
-    #         print(self.q_table[state][action])
-    #         self.dir = 90 * action
-
-    #     def get_state(self):
-            
-    #         dx = round(30*(player.x - self.x))
-    #         dy = round(30*(player.y - self.y))
-    #         state = dx, dy
-    #         return state
-    #     def get_action(self,state):
-    #         if np.random.rand() < self.exploration_rate:
-    #             action = np.random.randint(0,4)
-    #         else:
-    #             action = np.argmax(self.q_table[state])
-    #         return action
-        
-    #     def get_reward(self):
-    #         dx = player.x - self.x
-    #         dy = player.x - self.y
-    #         dist = math.hypot(3*dx, 3*dy)
-    #         return -dist
-        
-
-    #     def get_direction(self, action):
-    #         if action == 0:
-    #             return 1, 0
-    #         elif action == 1:
-    #             return -1, 0
-    #         elif action == 2:
-    #             return 0, 1
-    #         else:
-    #             return 0, -1
-
-
 
     class Tile:
         def __init__(self, type):
@@ -343,15 +314,15 @@ def run_game(q):
 
         def display(self, x, y):
             if self.type >= 1:
-                screen.blit(board_images[self.type-1], (x ,y - 0 * CELLSIZE))
+                screen.blit(board_images[self.type-1], (x, y - 0 * CELLSIZE))
 
 
     board = []
     player = Player()
-    blinky = astarGhost("blinky", 18, 6)
-    pinky = astarGhost("pinky", 24, 6)
-    inky = astarGhost("inky", 26, 24)
-    clyde = astarGhost("clyde", 16, 6)
+    blinky = astarGhost("blinky")
+    pinky = astarGhost("pinky")
+    inky = astarGhost("inky")
+    clyde = astarGhost("clyde")
     ghosts = [blinky, pinky, inky, clyde]
 
     def outofx(x):
@@ -385,7 +356,23 @@ def run_game(q):
         player.update()
         for ghost in ghosts:
             ghost.update()
-        
+            if math.hypot(player.x - ghost.x, player.y - ghost.y) < 1:
+                if player.flicker > 0:
+                    if ghost.alive:
+                        player.score += 100
+                        ghost.alive = False
+                else:
+                    player.lives -= 1
+                    player.x, player.y = player.homex, player.homey
+                    blinky.x = blinky.homex
+                    blinky.y = blinky.homey
+                    pinky.x =  pinky.homex
+                    pinky.y =  pinky.homey
+                    inky.x =   inky.homex
+                    inky.y =   inky.homey
+                    clyde.x =  clyde.homex
+                    clyde.y =  clyde.homey
+            
 
     def display():
         player.display()
@@ -395,10 +382,6 @@ def run_game(q):
         for i in range(0, CELLY):
             for j in range(0, CELLX):
                 board[i][j].display(j * CELLSIZE, i*CELLSIZE)
-
-
-        # print("FPS:", int(timer.get_fps()))
-        
         
     running = True
     if __name__ == "__main__":
