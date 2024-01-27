@@ -36,14 +36,16 @@ class Player:
         self.dir = 0
         self.queuedDir = None
     def update(self):
-        print(self.dir)
 
+        
 
         if self.x % 1 == 0 and self.y % 1 == 0:
             self.checkTurns()
             if board[int(self.y - sin(self.dir))][int(self.x + cos(self.dir))].type < 3:
                 self.x = round(self.x + 0.05 * cos(self.dir), 2)
                 self.y = round(self.y - 0.05 * sin(self.dir), 2)
+            if board[int(self.y)][int(self.x)].type < 3:
+                board[int(self.y)][int(self.x)].type = 0
 
         else:
             self.x = round(self.x + 0.05 * cos(self.dir), 2)
@@ -51,7 +53,8 @@ class Player:
 
         print(self.x, self.y)
     def display(self):
-        screen.blit(py.transform.rotate(player_images[0], self.dir), (self.x * CELLSIZE, self.y * CELLSIZE))
+        screen.blit(py.transform.rotate(player_images[0], self.dir), (self.x * CELLSIZE- 2*CELLSIZE, self.y * CELLSIZE - 2* CELLSIZE))
+        py.draw.circle(screen, 'white', (self.x * CELLSIZE - 1.5*CELLSIZE, self.y * CELLSIZE- 1.5*CELLSIZE), 3)
     def checkTurns(self):
         if self.queuedDir == None:
             pass
@@ -71,7 +74,7 @@ class Tile:
 
     def display(self, x, y):
         if self.type >= 1:
-            screen.blit(board_images[self.type-1], (x,y))
+            screen.blit(board_images[self.type-1], (x- 1.5*CELLSIZE,y- 1.5*CELLSIZE))
 
 
 board = []
