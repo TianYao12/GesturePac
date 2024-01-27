@@ -3,5 +3,5 @@ from .models import Data
 class DataSerializer(serializers.ModelSerializer):
     class Meta:
         model = Data
-        fields = ['id', 'direction']
+        fields = ['id', 'name', 'score', 'num_lives']
         
