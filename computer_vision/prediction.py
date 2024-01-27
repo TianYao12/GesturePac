@@ -48,11 +48,14 @@ while True:
               imgResizeShape = imgResize.shape
             except:
               continue
+
             wGap = int((300 - wCal) / 2) + 1
             try:
                 imgWhite[:, wGap: wCal + wGap] = imgResize
                 prediction, index = classifier.getPrediction(imgWhite)
-                print(prediction, index)
+                # print(prediction, index)
+                response = requests.post(
+                    "http://127.0.0.1:8000/data/", json={"direction": labels[index]})
             except ValueError as e:
                 cv2.putText(img, 'move away from camera', (20, 20),
                             cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
@@ -67,7 +70,7 @@ while True:
             try:
                 imgWhite[hGap:hGap + hCal, :] = imgResize
                 prediction, index = classifier.getPrediction(imgWhite)
-                print(prediction, index)
+                #print(prediction, index)
                 # with open('thumb_direction.txt', 'w') as file:
                 #   file.write(str(labels[index]))
                 response = requests.post(

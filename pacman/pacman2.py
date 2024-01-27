@@ -86,7 +86,6 @@ class astarGhost:
         self.x = round(self.x + 0.04 * cos(self.dir), 2)
         self.y = round(self.y + 0.04 * sin(self.dir), 2)
 
-
     def display(self):
         py.draw.circle(screen, 'white', (self.x * CELLSIZE + CELLSIZE/2, self.y * CELLSIZE + CELLSIZE/2), 10)
     def checkTurns(self):
