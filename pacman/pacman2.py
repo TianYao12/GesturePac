@@ -1,7 +1,8 @@
 import pygame as py
 import math
 from board import boards as boardMap
-
+import requests
+import json
 py.init()
 
 CELLSIZE = 22
@@ -63,9 +64,6 @@ class Player:
             self.dir = self.queuedDir
             self.queuedDir = None
 
-        
-        
-
 player = Player()
 
 class Tile:
@@ -76,30 +74,36 @@ class Tile:
         if self.type >= 1:
             screen.blit(board_images[self.type-1], (x- 1.5*CELLSIZE,y- 1.5*CELLSIZE))
 
-
 board = []
-
 
 def init():
     for i in range(0, CELLY):
         board.append([])
         for j in range(0, CELLX):
-            board[i].append(Tile(boardMap[i][j]))
+            board[i].append(Tile(boardMap[i][j])) 
 
-def update():
+
+def read():
+    response = requests.get("http://127.0.0.1:8000/data/latest/")
+    
+    if response.status_code == 200:
+        thumb_direction = response.json().get("direction")
+        return thumb_direction
+    else:
+        return "nope"
+
+def update(direction):
     for e in py.event.get():
         if e.type == py.QUIT:
-            running
             running = False
-        if e.type == py.KEYDOWN:
-            if e.key == py.K_RIGHT:
-                player.queuedDir = 0
-            if e.key == py.K_UP:
-                player.queuedDir = 90
-            if e.key == py.K_LEFT:
-                player.queuedDir = 180
-            if e.key == py.K_DOWN:
-                player.queuedDir = 270
+        if direction == 'right':
+            player.queuedDir = 0
+        if direction == 'up':
+            player.queuedDir = 90
+        if direction == 'left':
+            player.queuedDir = 180
+        if direction == 'down':
+            player.queuedDir = 270
     player.update()
 
 def display():
@@ -119,7 +123,11 @@ if __name__ == "__main__":
     while running:
         timer.tick(FPS)
         screen.fill('black')
-        update()
+        direction = read()
+        print(f"Read direction: {direction}")  # Add this line for debug
+
+        print(direction)
+        update(direction)
         display()
         py.display.flip()
     py.quit()
