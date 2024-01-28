@@ -1,19 +1,21 @@
 import numpy as np  
-import cv2
-
 import time
 import pygame as py
+import pygame_textinput as pyti
 import math
 from board import boards as boardMap
 import threading
 import queue
 import os
 import mediapipe as mp
+import cv2
 
-os.chdir("./nostalgia/pacman/") 
+os.chdir("./nostalgia/pacman/") # THIS IS FOR TESTING PURPOSES ONLY
 
 
 signIndex = 0
+
+
 
 def run_model(q):
     head_x, head_y = 0, 0
@@ -105,7 +107,7 @@ def run_game(q):
 
     py.mixer.init()
     py.mixer.music.load('assets/bg.mp3')
-    py.mixer.music.set_volume(0.2)
+    py.mixer.music.set_volume(0.3)
     py.mixer.music.play()
 
     CELLSIZE = 22
@@ -118,8 +120,10 @@ def run_game(q):
     def cos(n): return round(math.cos(math.radians(n)))
     def sin(n): return round(math.sin(math.radians(n)))
 
-    screen = py.display.set_mode([WIDTH, HEIGHT])
+    screen = py.display.set_mode([WIDTH + 200, HEIGHT])
     timer = py.time.Clock()
+    font = py.font.Font('freesansbold.ttf', 24)
+
     player_images = []
     for i in range(1, 5):
         player_images.append(py.transform.scale(py.image.load(f'assets/player_images/{i}.png'), (CELLSIZE, CELLSIZE)))
@@ -128,8 +132,10 @@ def run_game(q):
     for i in range(1, 10):
         board_images.append(py.transform.scale(py.image.load(f'assets/board_images/{i}.png').convert_alpha(), (CELLSIZE, CELLSIZE)))
 
-
-
+    def outofx(x):
+        return x < 0 or x >= CELLX
+    def outofy(y):
+        return y < 0 or y >= CELLY
 
 
     class Player:
@@ -147,10 +153,14 @@ def run_game(q):
             
             if self.flicker > 0:
                 self.flicker -= 1
+            
+            if outofy(int(self.y - sin(self.dir))) or outofx(int(self.x + cos(self.dir))) :
+                self.x = round(self.x + 0.05 * cos(self.dir), 2) % (CELLX-0.05)
+                self.y = round(self.y - 0.05 * sin(self.dir), 2) % CELLY
+            elif not(self.x % 1 == 0 and self.y % 1 == 0) or board[int(self.y - sin(self.dir))][int(self.x + cos(self.dir))].type < 3:
+                self.x = round(self.x + 0.05 * cos(self.dir), 2) % (CELLX-0.05)
+                self.y = round(self.y - 0.05 * sin(self.dir), 2) % CELLY
 
-            if not(self.x % 1 == 0 and self.y % 1 == 0) or board[int(self.y - sin(self.dir))][int(self.x + cos(self.dir))].type < 3:
-                self.x = round(self.x + 0.05 * cos(self.dir), 2)
-                self.y = round(self.y - 0.05 * sin(self.dir), 2)
             if self.x % 1 == 0 and self.y % 1 == 0:
                 self.checkTurns()
                 if board[int(self.y)][int(self.x)].type < 3:
@@ -169,7 +179,9 @@ def run_game(q):
         def checkTurns(self):
             if self.queuedDir == None:
                 pass
-            
+            elif outofy(int(self.y - sin(self.dir))) or outofx(int(self.x + cos(self.dir))):
+                self.dir = self.queuedDir
+                self.queuedDir = None
             elif board[int(self.y - sin(self.queuedDir))][int(self.x + cos(self.queuedDir))].type < 3:
                 self.dir = self.queuedDir
                 self.queuedDir = None
@@ -190,26 +202,33 @@ def run_game(q):
             self.name = name
             self.dir = 0
             self.alive = True
+            self.weakImage = py.transform.scale(py.image.load('assets/ghost_images/powerup.png'), (CELLSIZE, CELLSIZE))
+            self.deadImage = py.transform.scale(py.image.load('assets/ghost_images/dead.png'), (CELLSIZE, CELLSIZE))
             if name == 'blinky':
                 self.color = "red"
                 self.speed = 0.025
                 self.homex = 14
                 self.homey = 13
+                self.image = py.transform.scale(py.image.load('assets/ghost_images/red.png'), (CELLSIZE, CELLSIZE))
             elif name == 'pinky':
                 self.color = "pink"
                 self.speed = 0.03125
                 self.homex = 12
                 self.homey = 16
+                self.image = py.transform.scale(py.image.load('assets/ghost_images/pink.png'), (CELLSIZE, CELLSIZE))
             elif name == 'inky':
                 self.color = "cyan"
                 self.speed = 0.03125
                 self.homex = 14
                 self.homey = 16
+                self.image = py.transform.scale(py.image.load('assets/ghost_images/blue.png'), (CELLSIZE, CELLSIZE))
             elif name == 'clyde':
                 self.color = "orange"
                 self.speed = 0.04
                 self.homex = 14
                 self.homey = 16
+                self.image = py.transform.scale(py.image.load('assets/ghost_images/orange.png'), (CELLSIZE, CELLSIZE))
+
             self.x = self.homex
             self.y = self.homey
         def update(self):
@@ -231,11 +250,14 @@ def run_game(q):
 
 
         def display(self):
-            if player.flicker == 0:
-                py.draw.circle(screen, self.color, (self.x * CELLSIZE + CELLSIZE/2, self.y * CELLSIZE + CELLSIZE/2), 10)
+            if not(self.alive):
+                screen.blit(self.deadImage,(self.x * CELLSIZE , self.y * CELLSIZE ))
+            elif player.flicker == 0:
+                # py.draw.circle(screen, self.color, (self.x * CELLSIZE + CELLSIZE/2, self.y * CELLSIZE + CELLSIZE/2), 10)
+                screen.blit(self.image, (self.x * CELLSIZE , self.y * CELLSIZE ))
             else:
-                py.draw.circle(screen, 'white', (self.x * CELLSIZE + CELLSIZE/2, self.y * CELLSIZE + CELLSIZE/2), 10)
-
+                # py.draw.circle(screen, 'white', (self.x * CELLSIZE + CELLSIZE/2, self.y * CELLSIZE + CELLSIZE/2), 10)
+                screen.blit(self.weakImage, (self.x * CELLSIZE , self.y * CELLSIZE ))
         def checkTurns(self):
 
             path = self.astar()
@@ -259,7 +281,9 @@ def run_game(q):
                 else:
                     for i in range(19):
                         x,y = int(player.x + i*cos(player.dir)), int(player.y - i*sin(player.dir))
-                        if board[y][x].type >= 3 or outofy(y) or outofx(x):
+                        if outofy(y) or outofx(x):
+                            break
+                        if board[y][x].type >= 3:
                             break
                         end_node = Node(None, (x, y))
             elif self.name == 'inky':
@@ -268,7 +292,9 @@ def run_game(q):
                 else:
                     for i in range(19):
                         x,y = int(player.x - i*cos(player.dir)), int(player.y + i*sin(player.dir))
-                        if board[y][x].type >= 3 or outofy(y) or outofx(x):
+                        if outofy(y) or outofx(x):
+                            break
+                        if board[y][x].type >= 3:
                             break
                         end_node = Node(None, (x, y))
             elif self.name == 'clyde':
@@ -295,7 +321,7 @@ def run_game(q):
                     path = []
                     while current_node is not None:
                         path.append(current_node.position)
-                        py.draw.circle(screen, 'white', (current_node.position[0] * CELLSIZE + CELLSIZE/2, current_node.position[1] * CELLSIZE + CELLSIZE/2), 7)
+                        # py.draw.circle(screen, 'white', (current_node.position[0] * CELLSIZE + CELLSIZE/2, current_node.position[1] * CELLSIZE + CELLSIZE/2), 7)
                         current_node = current_node.parent
                     return path[::-1]
                 
@@ -342,10 +368,7 @@ def run_game(q):
     clyde = astarGhost("clyde")
     ghosts = [blinky, pinky, inky, clyde]
 
-    def outofx(x):
-        return x < 0 or x > CELLX
-    def outofy(y):
-        return y < 0 or y > CELLY
+
     def init():
         for i in range(0, CELLY):
             board.append([])
@@ -399,9 +422,14 @@ def run_game(q):
         for i in range(0, CELLY):
             for j in range(0, CELLX):
                 board[i][j].display(j * CELLSIZE, i*CELLSIZE)
+
+
+        screen.blit(font.render(f"Lives: {player.lives}",True, 'white'), (CELLX * CELLSIZE + 30, CELLY * CELLSIZE/2 - 60))
+        screen.blit(font.render(f"Score: {player.score}",True, 'white'), (CELLX * CELLSIZE + 30, CELLY * CELLSIZE/2 - 10))
         
     running = True
     if __name__ == "__main__":
+        name = "John Cena"
         init()
         while running:
             timer.tick(FPS)
@@ -409,7 +437,44 @@ def run_game(q):
             update()
             display()
             py.display.flip()
+            if player.lives <= 0:
+                running = False
+        textinput = pyti.TextInputVisualizer(font_color='white', cursor_color='white')
+        waiting = True
+        while waiting:
+            screen.fill('black')
+            timer.tick(FPS)
+            
+
+            events = py.event.get()
+
+            textinput.update(events)
+            tirect = textinput.surface.get_rect(center=((WIDTH + 200)/2, HEIGHT/2))
+            screen.blit(textinput.surface, tirect)
+
+            name = textinput.value
+
+
+            t1 = font.render(f"CONGRATS! YOUR FINAL SCORE IS {player.score}", True, 'white')
+            t1rect = t1.get_rect(center=((WIDTH + 200)/2, HEIGHT/2 + 200))
+            screen.blit(t1, t1rect)
+
+            t2 = font.render("ENTER YOUR NAME", True, 'white')
+            t2rect = t2.get_rect(center=((WIDTH + 200)/2, HEIGHT/2 + 100))
+            screen.blit(t2, t2rect)
+            
+            py.display.flip()
+            for e in events:
+                if e.type == py.QUIT:
+                    exit()
+                if e.type == py.KEYDOWN:
+                    if e.key == py.K_RETURN:
+                        waiting = False
+            
+        print(name) # NAME INPUT VARIABLE
+
         py.quit()
+        exit()
 
 
 q = queue.Queue()
