@@ -98,6 +98,13 @@ def run_game(q):
   time.sleep(9)
   pygame.init()
 
+  pygame.mixer.init()
+  pygame.mixer.music.load('assets/bg.mp3')
+  
+  pygame.mixer.music.set_volume(0.4)
+  pygame.mixer.music.play()
+  pygame.mixer.music.set_pos(20)
+
   SCREEN = pygame.display.set_mode((500, 750))
 
   BACKGROUND_IMAGE = pygame.image.load('assets/background.jpg')
