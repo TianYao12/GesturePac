@@ -1,7 +1,11 @@
 from rest_framework import serializers
-from .models import Data
-class DataSerializer(serializers.ModelSerializer):
+from .models import Data_PAC, Data_FLAP
+class DataPACSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Data
-        fields = ['id', 'name', 'score', 'num_lives']
-        
+        model = Data_PAC
+        fields = ['id','name','score']
+
+class DataFLAPSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Data_FLAP
+        fields = ['id','name','score']

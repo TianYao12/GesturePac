@@ -1,45 +1,85 @@
-@import url('https://fonts.googleapis.com/css2?family=Major+Mono+Display&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
 
 :root {
-    background: linear-gradient(135deg, #6a5bf3, black);
-    background-repeat: no-repeat;
+  background: url(./backgroundImage.jpg) no-repeat center center fixed;
+  height: 100%;
+
+  /* Center and scale the image nicely */
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
     background-attachment: fixed;
-    --font-major: "Major Mono Display";
+    --font-major: "VT23";
     --custom-scrollbar-thumb-color: rgb(231, 214, 241);
     --color-primary: blueviolet;
   }
 
 body {
-    background: linear-gradient(135deg, #6a5bf3, black);
-    background-repeat: no-repeat;
+  background: url(./backgroundImage.jpg) no-repeat center center fixed;
+  height: 100%;
+
+  /* Center and scale the image nicely */
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
     background-attachment: fixed;
-    font-family: var(--font-major);
+    font-family: 'VT323', monospace;
     font-weight:900;
     text-align: center;
     align-items: center;
     --color-primary: blueviolet;
+    margin: 0;
+      
   }
 
 .css-7g81c7{
-    background: linear-gradient(135deg, #6a5bf3, black);
+  background: url(./backgroundImage.jpg) no-repeat center center fixed;
+  height: 100%;
+
+  /* Center and scale the image nicely */
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
     background-repeat: no-repeat;
     background-attachment: fixed;
     --color-primary: blueviolet;
 }
 
-
-
-
+ 
 #course-text{
   color:rgb(231, 214, 241);
   margin-top:1vw;
 
 }
 
-#title{
+
+#maintitle {
+  font-size:7vw;
+  font-family: 'VT323', monospace;
+  margin-bottom:-2vw;
+  color:rgb(67, 244, 51);
+}
+
+/* #ic {
+  border-radius: 40%;
+} */
+#slogan{
+  font-size: 4vw;
+  margin-bottom:1vw;
+  font-family: 'VT323', monospace;
+  color:yellow;
+  margin-top:-1vw;
+}
+#pacmantitle{
   font-size:5vw;
-  font-family: var(--font-major);
+  font-family: 'VT323', monospace;
+  margin-bottom:-2vw;
+  color:beige;
+}
+#title{
+  font-size:7vw;
+  font-family: 'VT323', monospace;
   margin-bottom:-2vw;
 }
 
@@ -65,4 +105,24 @@ body {
 #add-button:hover{
   background-color:rgb(231, 214, 241);
   color:blueviolet;
+}
+
+#directions, #pacmanimage{
+  width: 50%; /* Each image takes up 50% of the width */
+  max-width: 200px; /* You can adjust the maximum width as needed */
+}
+
+/* Add additional styling if needed */
+#directions {
+  order: 1; /* Change the order to 1 to move to the left */
+}
+
+#pacmanimage {
+  order: 2; /* Change the order to 2 to move to the right */
+}
+
+.column {
+  float: left;
+  width: 33.33%;
+  padding: 5px;
 }
